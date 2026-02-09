@@ -15,9 +15,23 @@ CREATE TABLE IF NOT EXISTS cuestiones.estudiantes (
     nombre VARCHAR(40),
     codigo_carrera INT,
     edad INT,
-    indice_academico INT
+    indice INT
 );
 
-COPY cuestiones.estudiantes(nombre, codigo_carrera, edad, indice_academico)
+COPY cuestiones.estudiantes(nombre, codigo_carrera, edad, indice)
 FROM 'C:\estudiantes.csv'
-WITH (FORMAT csv, HEADER true);
+WITH (FORMAT csv, HEADER false);
+
+--CUESTIÓN 2
+SELECT
+    COUNT(*) AS num_filas,
+    pg_relation_size('cuestiones.estudiantes') AS tamano_bytes,
+    8192 AS tamano_bloque,
+    COUNT(*) / CEIL(pg_relation_size('cuestiones.estudiantes')::numeric / 8192) AS filas_por_bloque_real
+FROM cuestiones.estudiantes;
+
+--CUESTIÓN 3
+-- Encontrar los estudiantes con índice 500
+SELECT *
+FROM cuestiones.estudiantes
+WHERE indice = 500;
