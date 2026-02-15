@@ -67,6 +67,7 @@ WHERE tablename = 'estudiantes'
 SHOW shared_buffers; -- comprobar tamaño
 
 --CUESTIÓN 5
+-- Crear tabla ordenada por el campo índice
 CREATE TABLE IF NOT EXISTS cuestiones.estudiantes2 (
     estudiante_id SERIAL,
     nombre VARCHAR(40),
@@ -79,10 +80,67 @@ COPY cuestiones.estudiantes2(nombre, codigo_carrera, edad, indice)
 FROM 'C:\estudiantes.csv'
 WITH (FORMAT csv, HEADER false);
 
-DROP INDEX cuestiones.idx_estudiantes2_indice;
 CREATE INDEX IF NOT EXISTS idx_estudiantes2_indice
 ON cuestiones.estudiantes2(indice);
 
-CLUSTER cuestiones.estudiantes2 USING cuestiones.estudiantes2.idx_estudiantes2_indice;
+SELECT indexname
+FROM pg_indexes
+WHERE schemaname = 'cuestiones'; -- comprobamos que se ha creado el índice
 
--- comprobar número de bloques total
+CLUSTER cuestiones.estudiantes2 USING idx_estudiantes2_indice;
+
+SELECT pg_relation_size('cuestiones.estudiantes2') / 8192 AS bloques; -- comprobar número de bloques total
+
+--CUESTIÓN 6
+-- Encontrar los estudiantes con índice 500
+SELECT COUNT(*) AS num_tuplas
+FROM cuestiones.estudiantes2
+WHERE indice = 500;
+
+
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM cuestiones.estudiantes2
+WHERE indice = 500;
+
+SELECT *
+FROM pg_stat_user_tables
+WHERE relname = 'estudiantes2';
+
+SELECT *
+FROM pg_stats
+WHERE tablename = 'estudiantes2';
+
+
+SELECT
+    attname,
+    n_distinct,
+    most_common_vals,
+    most_common_freqs
+FROM pg_stats
+WHERE tablename = 'estudiantes2'
+  AND attname = 'indice';
+
+-- CUESTIÓN 7
+DELETE FROM cuestiones.estudiantes
+WHERE estudiante_id IN (
+    SELECT estudiante_id
+    FROM cuestiones.estudiantes
+    ORDER BY random()
+    LIMIT 5000000
+);
+
+SELECT pg_relation_size('cuestiones.estudiantes') / 8192 AS bloques;
+
+SELECT n_live_tup, n_dead_tup
+FROM pg_stat_user_tables
+WHERE relname = 'estudiantes';
+
+
+-- CUESTIÓN 8
+INSERT INTO cuestiones.estudiantes (nombre, codigo_carrera, edad, indice)
+VALUES ('Roberto Pérez', 10, 22, 450);
+
+SELECT ctid, *
+FROM cuestiones.estudiantes
+WHERE nombre = 'Roberto Pérez'; -- buscar la dirección física de la fila
