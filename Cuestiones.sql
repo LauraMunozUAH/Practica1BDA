@@ -73,27 +73,10 @@ SHOW shared_buffers; -- comprobar tamaño
 
 --CUESTIÓN 5
 -- Crear tabla ordenada por el campo índice
-CREATE TABLE IF NOT EXISTS cuestiones.estudiantes2 (
-    estudiante_id SERIAL,
-    nombre VARCHAR(40),
-    codigo_carrera INT,
-    edad INT,
-    indice INT
-);
-
-COPY cuestiones.estudiantes2(nombre, codigo_carrera, edad, indice)
-FROM 'C:\estudiantes.csv'
-WITH (FORMAT csv, HEADER false);
-
-CREATE INDEX IF NOT EXISTS idx_estudiantes2_indice
-ON cuestiones.estudiantes2(indice);
-
-SELECT indexname
-FROM pg_indexes
-WHERE schemaname = 'cuestiones'; -- comprobamos que se ha creado el índice
-
-CLUSTER cuestiones.estudiantes2 USING idx_estudiantes2_indice;
-
+CREATE TABLE estudiantes2 AS
+SELECT *
+FROM estudiantes
+ORDER BY indice;
 SELECT pg_relation_size('cuestiones.estudiantes2') / 8192 AS bloques; -- comprobar número de bloques total
 
 --CUESTIÓN 6
@@ -229,3 +212,61 @@ SELECT
 FROM pg_stats
 WHERE tablename = 'estudiantes3'
   AND attname = 'indice';
+
+
+--CUESTIÓN 12
+DROP TABLE IF EXISTS cuestiones.estudiantes CASCADE;
+DROP TABLE IF EXISTS cuestiones.estudiantes2 CASCADE;
+DROP TABLE IF EXISTS cuestiones.estudiantes3 CASCADE;
+
+CREATE TABLE IF NOT EXISTS cuestiones.estudiantes (
+    estudiante_id SERIAL,
+    nombre VARCHAR(40),
+    codigo_carrera INT,
+    edad INT,
+    indice INT
+);
+
+COPY cuestiones.estudiantes(nombre, codigo_carrera, edad, indice)
+FROM 'C:\estudiantes.csv'
+WITH (FORMAT csv, HEADER false);
+
+-- Y ahora ordenar físicamente:
+CREATE TABLE estudiantes2 AS
+SELECT *
+FROM estudiantes
+ORDER BY indice;
+
+
+--CUESTIÓN 13
+CREATE INDEX IF NOT EXISTS idx_estudiantes2_id
+ON cuestiones.estudiantes2(estudiante_id);
+--Comprobamos que se ha creado el índice
+SELECT indexname
+FROM pg_indexes
+WHERE schemaname = 'cuestiones';
+--Obtenemos su identrificador interno
+SELECT oid, relname
+FROM pg_class
+WHERE relname = 'idx_estudiantes2_id';
+--Tamaño del índice
+SELECT pg_size_pretty(
+    pg_relation_size('idx_estudiantes2_id')
+);
+--Número de bloques
+SELECT pg_relation_size('idx_estudiantes2_id') / 8192 AS bloques;
+--Analizamos la estructura interna del arbol
+--Número de niveles del árbol
+SELECT relname, relpages AS bloques, reltuples AS tuplas
+FROM pg_class
+WHERE relname = 'idx_estudiantes2_id';
+--Tuplas por bloque
+SELECT reltuples / relpages AS tuplas_por_bloque
+FROM pg_class
+WHERE relname = 'idx_estudiantes2_id';
+
+
+--CUESTIÓN 14
+
+
+CLUSTER cuestiones.estudiantes2 USING idx_estudiantes2_indice;
