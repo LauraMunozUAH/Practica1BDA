@@ -293,4 +293,24 @@ SELECT relname, relpages AS bloques, reltuples AS tuplas
 FROM pg_class
 WHERE relname='idx_estudiantes2_id_hash';
 
---CLUSTER cuestiones.estudiantes2 USING idx_estudiantes2_indice;
+
+--CUESTIÓN 17
+CREATE INDEX idx_estudiantes2_indice
+ON cuestiones.estudiantes2 (indice);
+
+--Verificamos su existencia
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE schemaname='cuestiones' AND indexname='idx_estudiantes2_indice';
+--Obtenemos su OID
+SELECT oid, relname
+FROM pg_class
+WHERE relname='idx_estudiantes2_indice';
+--Tamaño del índice y número de bloques
+SELECT pg_size_pretty(pg_relation_size('idx_estudiantes2_indice')) AS tamaño,
+       pg_relation_size('idx_estudiantes2_indice')/8192 AS bloques;
+--Número de niveles, bloques por nivel y promedio de tuplas por bloque
+SELECT relpages AS bloques, reltuples AS tuplas,
+       reltuples/relpages AS tuplas_por_bloque
+FROM pg_class
+WHERE relname='idx_estudiantes2_indice';
