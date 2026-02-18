@@ -75,7 +75,7 @@ SHOW shared_buffers; -- comprobar tamaño
 -- Crear tabla ordenada por el campo índice
 CREATE TABLE estudiantes2 AS
 SELECT *
-FROM estudiantes
+FROM cuestiones.estudiantes
 ORDER BY indice;
 SELECT pg_relation_size('cuestiones.estudiantes2') / 8192 AS bloques; -- comprobar número de bloques total
 
@@ -267,6 +267,30 @@ WHERE relname = 'idx_estudiantes2_id';
 
 
 --CUESTIÓN 14
+SELECT avg(pg_column_size(t.*)) AS tamano_promedio
+FROM cuestiones.estudiantes2 t;
 
+--CUESTIÓN 15
+CREATE INDEX idx_estudiantes2_id_hash
+ON cuestiones.estudiantes2 USING HASH (estudiante_id);
 
-CLUSTER cuestiones.estudiantes2 USING idx_estudiantes2_indice;
+--Inspecionamos su existencia
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE schemaname='cuestiones' AND indexname='idx_estudiantes2_id_hash';
+
+--Inspeccionamos su OID
+SELECT oid, relname
+FROM pg_class
+WHERE relname='idx_estudiantes2_id_hash';
+
+--Tamaño físico del índice y el número de bloques que ocupa
+SELECT pg_size_pretty(pg_relation_size('idx_estudiantes2_id_hash')) AS tamaño,
+       pg_relation_size('idx_estudiantes2_id_hash')/8192 AS bloques;
+
+--Conocer el número de cajones y la distribución de tuplas por cajón
+SELECT relname, relpages AS bloques, reltuples AS tuplas
+FROM pg_class
+WHERE relname='idx_estudiantes2_id_hash';
+
+--CLUSTER cuestiones.estudiantes2 USING idx_estudiantes2_indice;
