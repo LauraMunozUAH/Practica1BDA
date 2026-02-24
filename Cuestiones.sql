@@ -73,7 +73,7 @@ SHOW shared_buffers; -- comprobar tamaño
 
 --CUESTIÓN 5
 -- Crear tabla ordenada por el campo índice
-CREATE TABLE estudiantes2 AS
+CREATE TABLE IF NOT EXISTS estudiantes2 AS
 SELECT *
 FROM cuestiones.estudiantes
 ORDER BY indice;
@@ -234,7 +234,7 @@ WITH (FORMAT csv, HEADER false);
 -- Y ahora ordenar físicamente:
 CREATE TABLE estudiantes2 AS
 SELECT *
-FROM estudiantes
+FROM cuestiones.estudiantes
 ORDER BY indice;
 
 
@@ -314,3 +314,26 @@ SELECT relpages AS bloques, reltuples AS tuplas,
        reltuples/relpages AS tuplas_por_bloque
 FROM pg_class
 WHERE relname='idx_estudiantes2_indice';
+
+--CUESTIÓN 19
+CREATE INDEX idx_estudiantes2_indice_hash
+ON cuestiones.estudiantes2 USING HASH (indice);
+
+--Inspecionamos su existencia
+SELECT indexname, indexdef
+FROM pg_indexes
+WHERE schemaname='cuestiones' AND indexname='idx_estudiantes2_indice_hash';
+
+--Inspeccionamos su OID
+SELECT oid, relname
+FROM pg_class
+WHERE relname='idx_estudiantes2_indice_hash';
+
+--Tamaño físico del índice y el número de bloques que ocupa
+SELECT pg_size_pretty(pg_relation_size('idx_estudiantes2_indice_hash')) AS tamaño,
+ pg_relation_size('idx_estudiantes2_indice_hash')/8192 AS bloques;
+
+--Conocer el número de cajones y la distribución de tuplas por cajón
+SELECT relname, relpages AS bloques, reltuples AS tuplas
+FROM pg_class
+WHERE relname='idx_estudiantes2_indice_hash';
