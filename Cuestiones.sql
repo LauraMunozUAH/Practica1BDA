@@ -337,3 +337,159 @@ SELECT pg_size_pretty(pg_relation_size('idx_estudiantes2_indice_hash')) AS tama�
 SELECT relname, relpages AS bloques, reltuples AS tuplas
 FROM pg_class
 WHERE relname='idx_estudiantes2_indice_hash';
+
+
+-- CUESTIÓN 22
+DROP TABLE IF EXISTS cuestiones.estudiantes CASCADE;
+DROP TABLE IF EXISTS cuestiones.estudiantes2 CASCADE;
+
+CREATE TABLE IF NOT EXISTS cuestiones.estudiantes (
+    estudiante_id SERIAL,
+    nombre VARCHAR(40),
+    codigo_carrera INT,
+    edad INT,
+    indice INT --PRIMARY KEY
+);
+
+COPY cuestiones.estudiantes(nombre, codigo_carrera, edad, indice)
+FROM 'C:\estudiantes.csv'
+WITH (FORMAT csv, HEADER false);
+
+--ALTER TABLE cuestiones.estudiantes
+--ADD CONSTRAINT estudiantes_indice_pk PRIMARY KEY (indice);
+CREATE INDEX idx_estudiantes_indice_btree
+ON cuestiones.estudiantes (indice);
+
+CREATE INDEX idx_estudiantes_codigo_carrera_btree
+ON cuestiones.estudiantes (codigo_carrera);
+
+CREATE INDEX idx_estudiantes_estudiante_id_hash
+ON cuestiones.estudiantes
+USING HASH (estudiante_id);
+
+CREATE INDEX idx_estudiantes_indice_hash
+ON cuestiones.estudiantes
+USING HASH (indice);
+
+--CUESTIÓN 23
+
+--Apartado 1
+
+SELECT pg_stat_reset(); --reiniciar las estadísticas acumuladas
+
+SELECT *
+FROM cuestiones.estudiantes
+WHERE codigo_carrera = 50;
+
+-- Vistas
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+--Apartado 2
+SELECT pg_stat_reset();
+
+SELECT *
+FROM cuestiones.estudiantes
+WHERE estudiante_id = 80000;
+
+-- Vistas
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+--Apartado 3
+SELECT pg_stat_reset();
+
+SELECT *
+FROM cuestiones.estudiantes
+WHERE indice BETWEEN 100 AND 200;
+
+-- Vistas
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+--Apartado 4
+SELECT pg_stat_reset();
+
+SELECT COUNT(*)
+FROM cuestiones.estudiantes
+WHERE edad = 20;
+
+-- Vistas
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+--Apartado 5
+SELECT pg_stat_reset();
+
+SELECT indice, COUNT(*)
+FROM cuestiones.estudiantes
+GROUP BY indice;
+
+-- Vistas
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+--Apartado 6
+SELECT pg_stat_reset();
+
+SELECT codigo_carrera, AVG(edad) AS media_edad
+FROM cuestiones.estudiantes
+GROUP BY codigo_carrera;
+
+-- Vistas
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+--Apartado 7
+SELECT pg_stat_reset();
+
+INSERT INTO cuestiones.estudiantes (nombre, codigo_carrera, edad, indice)
+VALUES ('Roberto Pérez', 10, 21, 100);
+
+-- Vistas
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+--CUESTIÓN 24
+DROP INDEX IF EXISTS idx_estudiantes_indice_btree;
+DROP INDEX IF EXISTS idx_estudiantes_codigo_carrera_btree;
+DROP INDEX IF EXISTS idx_estudiantes_estudiante_id_hash;
+DROP INDEX IF EXISTS idx_estudiantes_indice_hash;
+
+CREATE INDEX idx_estudiantes_multiclave
+ON cuestiones.estudiantes (codigo_carrera, indice);
