@@ -493,3 +493,220 @@ DROP INDEX IF EXISTS idx_estudiantes_indice_hash;
 
 CREATE INDEX idx_estudiantes_multiclave
 ON cuestiones.estudiantes (codigo_carrera, indice);
+
+--CUESTIÓN 25
+-- Reiniciar estadísticas acumuladas
+SELECT pg_stat_reset();
+
+--Apartado 1
+-- Consulta solicitada
+SELECT *
+FROM cuestiones.estudiantes
+WHERE codigo_carrera = 20
+  AND indice = 500;
+
+-- Bloques leídos de la tabla (heap)
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+-- Bloques leídos de los índices
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+-- Plan de ejecución detallado
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM cuestiones.estudiantes
+WHERE codigo_carrera = 20
+  AND indice = 500;
+
+--Apartado 2
+-- Reiniciar estadísticas acumuladas
+SELECT pg_stat_reset();
+
+-- Consulta solicitada
+SELECT *
+FROM cuestiones.estudiantes
+WHERE codigo_carrera = 50
+   OR indice = 900;
+
+-- Bloques leídos de la tabla (heap)
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+-- Bloques leídos de los índices
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+-- Plan de ejecución detallado
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM cuestiones.estudiantes
+WHERE codigo_carrera = 50
+   OR indice = 900;
+
+--Apartado 3
+-- Reiniciar estadísticas acumuladas
+SELECT pg_stat_reset();
+
+-- Consulta solicitada
+SELECT *
+FROM cuestiones.estudiantes
+WHERE indice = 300;
+
+-- Bloques leídos de la tabla (heap)
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+-- Bloques leídos de los índices
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+-- Plan de ejecución detallado
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM cuestiones.estudiantes
+WHERE indice = 300;
+
+--Apartado 4
+-- Reiniciar estadísticas acumuladas
+SELECT pg_stat_reset();
+
+-- Consulta solicitada
+SELECT *
+FROM cuestiones.estudiantes
+WHERE codigo_carrera = 80;
+
+-- Bloques leídos de la tabla (heap)
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname = 'estudiantes';
+
+-- Bloques leídos de los índices
+SELECT indexrelname, idx_blks_read, idx_blks_hit
+FROM pg_statio_user_indexes
+WHERE relname = 'estudiantes';
+
+-- Plan de ejecución detallado
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM cuestiones.estudiantes
+WHERE codigo_carrera = 80;
+
+
+--CUESTIÓN 26
+-- Eliminar si existía
+DROP TABLE IF EXISTS cuestiones.estudiantes3 CASCADE;
+
+-- Tabla principal particionada por LIST sobre edad
+CREATE TABLE cuestiones.estudiantes3 (
+    estudiante_id SERIAL,
+    nombre VARCHAR(40),
+    codigo_carrera INT,
+    edad INT,
+    indice INT
+) PARTITION BY LIST (edad);
+
+-- Crear particiones para edades de 0 a 40
+DO  $$
+BEGIN
+  FOR i IN 0..40 LOOP
+    EXECUTE format(
+      'CREATE TABLE cuestiones.estudiantes3_edad%s
+       PARTITION OF cuestiones.estudiantes3
+       FOR VALUES IN (%s);',
+      i, i
+    );
+  END LOOP;
+END $$;
+
+-- Insertar datos desde la tabla original
+INSERT INTO cuestiones.estudiantes3 (nombre, codigo_carrera, edad, indice)
+SELECT nombre, codigo_carrera, edad, indice
+FROM cuestiones.estudiantes;
+
+--Apartado 1
+-- Reiniciar estadísticas
+SELECT pg_stat_reset();
+
+-- Contar estudiantes con edad 25
+SELECT COUNT(*)
+FROM cuestiones.estudiantes3
+WHERE edad = 25;
+
+-- Bloques leídos de la tabla (heap)
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname LIKE 'estudiantes3%';
+
+-- Plan de ejecución detallado
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT COUNT(*)
+FROM cuestiones.estudiantes3
+WHERE edad = 25;
+
+--Apartado 2
+-- Reiniciar estadísticas acumuladas
+SELECT pg_stat_reset();
+
+-- Consulta solicitada
+SELECT *
+FROM cuestiones.estudiantes3
+WHERE edad IN (20, 25, 30);
+
+-- Bloques leídos de las particiones (heap)
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname LIKE 'estudiantes3%';
+
+-- Plan de ejecución detallado
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM cuestiones.estudiantes3
+WHERE edad IN (20, 25, 30);
+
+--Apartado 3
+-- Reiniciar estadísticas
+SELECT pg_stat_reset();
+
+-- Consulta solicitada
+SELECT *
+FROM cuestiones.estudiantes3
+WHERE edad BETWEEN 25 AND 30;
+
+-- Bloques leídos de las particiones (heap)
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname LIKE 'estudiantes3%';
+
+-- Plan de ejecución detallado
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM cuestiones.estudiantes3
+WHERE edad BETWEEN 25 AND 30;
+
+--Apartado 4
+-- Reiniciar estadísticas acumuladas
+SELECT pg_stat_reset();
+
+-- Consulta para estudiantes con edad mayor a 50
+SELECT *
+FROM cuestiones.estudiantes3
+WHERE edad > 50;
+
+-- Consultar los bloques leídos de las particiones (heap)
+SELECT relname, heap_blks_read, heap_blks_hit
+FROM pg_statio_user_tables
+WHERE relname LIKE 'estudiantes3%';
+
+-- Obtener el plan de ejecución con análisis de buffers
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM cuestiones.estudiantes3
+WHERE edad > 50;
